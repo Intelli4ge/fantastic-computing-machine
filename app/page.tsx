@@ -12,6 +12,8 @@ export default function Home() {
   const { performOCR, progress, status, statusMessage, result, confidence } = useOCR();
   const [editableText, setEditableText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Options
   const [useEnglish, setUseEnglish] = useState(false);
@@ -75,6 +77,42 @@ export default function Home() {
     element.download = "amharic_ocr_result.txt";
     document.body.appendChild(element);
     element.click();
+  };
+
+  const handleSaveToServer = async () => {
+    if (!editableText) return;
+
+    setIsSaving(true);
+    setSaveStatus('idle');
+
+    try {
+      const response = await fetch('/api/upload-lyrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_UPLOAD_API_KEY || '',
+        },
+        body: JSON.stringify({
+          text: editableText,
+          metadata: {
+            confidence,
+            timestamp: new Date().toISOString(),
+            source: 'web-client'
+          }
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save');
+
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (err) {
+      console.error('Save error:', err);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 5000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const isLoading = status === 'initializing' || status === 'recognizing';
@@ -221,12 +259,31 @@ export default function Home() {
                     <Download className="w-5 h-5" />
                   </button>
                   <button
+                    onClick={handleSaveToServer}
+                    disabled={!editableText || isSaving}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                        ${saveStatus === 'success'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : saveStatus === 'error'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none'}`}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : saveStatus === 'success' ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved' : saveStatus === 'error' ? 'Failed' : 'Save to Server'}
+                  </button>
+                  <button
                     onClick={handleCopy}
-                    disabled={!editableText}
+                    disabled={!editableText || isSaving}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
                         ${copied
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none'}`}
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 disabled:opacity-50'}`}
                   >
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     {copied ? 'Copied' : 'Copy'}
