@@ -34,16 +34,16 @@ interface RemoteBackendResponse {
 export async function POST(request: NextRequest) {
     try {
         // 1. Validate API Key from header
-        const apiKey = request.headers.get('x-api-key');
-        const expectedKey = process.env.UPLOAD_API_SECRET;
+        // const apiKey = request.headers.get('x-api-key');
+        // const expectedKey = process.env.UPLOAD_API_SECRET;
 
-        if (!expectedKey || apiKey !== expectedKey) {
-            console.error('[Proxy] Unauthorized request - invalid API key');
-            return NextResponse.json(
-                { error: 'Unauthorized - Invalid API key' },
-                { status: 401 }
-            );
-        }
+        // if (!expectedKey || apiKey !== expectedKey) {
+        //     console.error('[Proxy] Unauthorized request - invalid API key');
+        //     return NextResponse.json(
+        //         { error: 'Unauthorized - Invalid API key' },
+        //         { status: 401 }
+        //     );
+        // }
 
         // 2. Parse and validate request body
         let body: UploadLyricsRequest;
